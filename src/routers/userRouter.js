@@ -7,8 +7,11 @@ const path=require("path")
 const multer= require("multer")
 const fs=require("fs")
 
+const Initport=require("../config/port.js")
 const rootDir=path.join(__dirname,"/../..")
 const photosDir=path.join(rootDir,"/upload/photos")
+
+const port=Initport
 
 const folder=multer.diskStorage({
     destination:function(req,file,cb){
@@ -162,7 +165,7 @@ router.get("/users/profile/:username",(req,res)=>{
 
         res.send({
             user:user,
-            avatar:`localhost:2019/users/avatar/:"${user.avatar}"`
+            avatar:`localhost:${port}/users/avatar/:"${user.avatar}"`
         })
     })
 })
