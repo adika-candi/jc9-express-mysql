@@ -2,8 +2,10 @@ const conn=require("../connection")
 const router=require("express").Router()
 const isEmail=require("validator/lib/isEmail")
 const bcrypt=require("bcrypt")
+const mailVerify = require('../email/nodemailer')
 const path=require("path")
 const multer= require("multer")
+const fs=require("fs")
 
 const rootDir=path.join(__dirname,"/../..")
 const photosDir=path.join(rootDir,"/upload/photos")
@@ -36,7 +38,7 @@ router.post('/users', (req, res) => {
 
     // tanda tanya akan di ganti oleh variabel data
     const sql = `INSERT INTO users SET ?`
-    const sql2 = `SELECT id, name, email, verified FROM users WHERE id = ?`
+    const sql2 = `SELECT id, name, email, username, verified FROM users WHERE id = ?`
     const data = req.body
 
     // Cek apakah email valid
@@ -59,6 +61,11 @@ router.post('/users', (req, res) => {
             if(err){
                 return res.send(err)
             }
+
+            var user = result2[0]
+
+            mailVerify(user)
+
 
             res.send(result2)
         })
@@ -109,6 +116,85 @@ router.get('/users/avatar/:image', (req, res) => {
 
     })
 
+})
+
+router.delete('/users/avatar', (req, res)=> {
+    const sql = `SELECT * FROM users WHERE username = '${req.body.user}'`
+    const sql2 = `UPDATE users SET avatar = null WHERE username = '${req.body.user}'`
+
+    conn.query(sql, (err, result) => {
+        if(err) return res.send(err)
+
+        // nama file
+        const fileName = result[0].avatar
+
+        const imgpath = photosdir + '/' + fileName
+
+        // delete image
+        fs.unlink(imgpath, (err) => {
+            if(err) return res.send(err)
+
+            // ubah jadi null
+            conn.query(sql2, (err, result2) => {
+                if(err) res.send(err)
+
+                res.send('Delete berhasil')
+            })
+        })
+    })
+})
+
+router.get("/users/profile/:username",(req,res)=>{
+    const sql=`SELECT username,name,email,avatar FROM users WHERE username=?`
+    const data=req.params.username
+
+    conn.query(sql,data,(err,result)=>{
+        if(err){
+            return res.send(err)
+        }
+
+        const user = result[0]
+
+        // jika user tidak di temukan
+        if(!user){
+            return res.send('User not found')
+        }
+
+        res.send({
+            user:user,
+            avatar:`localhost:2019/users/avatar/:"${user.avatar}"`
+        })
+    })
+})
+
+router.patch("/users/profile/:username",(req,res)=>{
+    const sql =`UPDATE users SET ? WHERE username=?`
+    const sql2=`SELECT username,name,email FROM users WHERE username="${req.params.username}"`
+    const data=[req.body,req.params.username]
+
+    conn.query(sql,data,(err,result)=>{
+        if(err){
+            return res.send(err)
+        }
+        conn.query(sql2,(err,result)=>{
+            if(err){
+                return res.send(err)
+            }
+            res.send(result[0])
+        })
+    })
+})
+
+// VERIFY USER
+router.get('/verify', (req, res) => {
+    const sql = `UPDATE users SET verified = true 
+                WHERE username = '${req.query.uname}'`
+
+    conn.query(sql, (err, result) => {
+        if(err) return res.send(err)
+
+        res.send('<h1>Verifikasi berhasil</h1>')
+    })
 })
 
 
