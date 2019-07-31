@@ -164,7 +164,7 @@ router.get("/users/profile/:username",(req,res)=>{
 
         res.send({
             user:user,
-            avatar:`localhost:${Initport}/users/avatar/:"${user.avatar}"`
+            avatar:`https://jc9mysql.herokuapp.com//users/avatar/:"${user.avatar}"`
         })
     })
 })
